@@ -1,0 +1,79 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  
+  /* Precision Color Palette */
+  --color-background: #F8FAFB;
+  --color-foreground: #14313A;
+  
+  --color-primary: #4F9FD8;
+  --color-primary-foreground: #FFFFFF;
+  
+  --color-secondary: #CDEAF7;
+  --color-secondary-foreground: #4F9FD8;
+  
+  --color-muted: #F0F4F5;
+  --color-muted-foreground: #5D7078;
+  
+  --color-accent: #DFF7F8;
+  --color-accent-foreground: #14313A;
+  
+  --color-success: #48C7A0;
+  --color-warning: #F6B95B;
+  --color-destructive: #EF6B6B;
+  
+  --color-border: rgba(120, 160, 180, 0.18);
+  --color-ring: #4F9FD8;
+  
+  --radius-lg: 1.25rem;
+  --radius-md: 0.75rem;
+  --radius-sm: 0.5rem;
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+    box-sizing: border-box;
+  }
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    @apply antialiased;
+  }
+}
+
+/* Custom Design Patterns */
+.minimal-glass {
+  background: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(8px);
+}
+
+.main-gradient-bg {
+  background: radial-gradient(circle at top right, #DFF7F8 0%, transparent 40%), 
+              radial-gradient(circle at bottom left, #F4EBDD 0%, transparent 40%),
+              #F8FAFB;
+}
+
+.sidebar-gradient {
+  background: linear-gradient(180deg, #FFFFFF 0%, #F0F4F5 100%);
+}
+
+.card-minimal {
+  background: white !important;
+  border: 1px solid var(--color-border) !important;
+  border-radius: 20px !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03) !important;
+}
+
+.badge-minimal {
+  @apply px-2 py-1 rounded font-bold text-[10px] uppercase tracking-wider;
+}
+
+.glass-panel {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.05);
+}

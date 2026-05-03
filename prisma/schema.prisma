@@ -1,0 +1,234 @@
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id           String    @id @default(cuid())
+  name         String
+  email        String    @unique
+  passwordDemo String    @default("demo123")
+  role         String    // OWNER, ADMIN_CABANG, TERAPIS, KASIR, MANAGER
+  branchId     String?
+  status       String    @default("ACTIVE")
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  
+  branch       Branch?   @relation(fields: [branchId], references: [id])
+  logs         AuditLog[]
+}
+
+model Branch {
+  id             String    @id @default(cuid())
+  code           String    @unique
+  name           String
+  city           String
+  address        String
+  phone          String
+  email          String
+  picName        String
+  operatingHours String
+  status         String    @default("ACTIVE")
+  brandColor     String?
+  createdAt      DateTime  @default(now())
+  
+  users          User[]
+  patients       Patient[]
+  therapists     Therapist[]
+  rooms          Room[]
+  bookings       Booking[]
+  medicalRecords MedicalRecord[]
+  invoices       Invoice[]
+  packages       TherapyPackage[]
+  payments       Payment[]
+  logs           AuditLog[]
+}
+
+model Patient {
+  id            String    @id @default(cuid())
+  branchId      String
+  name          String
+  age           Int
+  gender        String
+  phone         String
+  guardianName  String?
+  guardianPhone String?
+  address       String
+  therapyType   String
+  mainComplaint String
+  status        String    @default("ACTIVE")
+  lastVisitAt   DateTime?
+  createdAt     DateTime  @default(now())
+  
+  branch        Branch    @relation(fields: [branchId], references: [id])
+  bookings      Booking[]
+  medicalRecords MedicalRecord[]
+  invoices      Invoice[]
+  packages      TherapyPackage[]
+  payments      Payment[]
+}
+
+model Therapist {
+  id             String    @id @default(cuid())
+  branchId       String
+  name           String
+  specialization String
+  phone          String
+  email          String
+  workSchedule   String
+  status         String    @default("ACTIVE")
+  rating         Float     @default(5.0)
+  createdAt      DateTime  @default(now())
+  
+  branch         Branch    @relation(fields: [branchId], references: [id])
+  bookings       Booking[]
+  medicalRecords MedicalRecord[]
+}
+
+model Room {
+  id       String    @id @default(cuid())
+  branchId String
+  name     String
+  type     String
+  status   String    @default("AVAILABLE")
+  
+  branch   Branch    @relation(fields: [branchId], references: [id])
+  bookings Booking[]
+}
+
+model Booking {
+  id            String    @id @default(cuid())
+  branchId      String
+  patientId     String
+  therapistId   String
+  roomId        String
+  therapyType   String
+  bookingDate   DateTime
+  startTime     String
+  endTime       String
+  status        String    @default("PENDING") // PENDING, CONFIRMED, CHECK_IN, COMPLETED, CANCELLED
+  paymentStatus String    @default("UNPAID")
+  notes         String?
+  createdAt     DateTime  @default(now())
+  
+  branch        Branch    @relation(fields: [branchId], references: [id])
+  patient       Patient   @relation(fields: [patientId], references: [id])
+  therapist     Therapist @relation(fields: [therapistId], references: [id])
+  room          Room      @relation(fields: [roomId], references: [id])
+  medicalRecord MedicalRecord?
+}
+
+model MedicalRecord {
+  id             String    @id @default(cuid())
+  branchId       String
+  patientId      String
+  therapistId    String
+  therapyType    String
+  sessionNumber  Int
+  subjective     String
+  objective      String
+  assessment     String
+  plan           String
+  treatmentGiven String
+  homeExercise   String
+  progressStatus String    @default("STABLE") // IMPROVING, STABLE, NEEDS_EVALUATION, DECLINING
+  nextPlan       String?
+  recordDate     DateTime  @default(now())
+  createdAt      DateTime  @default(now())
+  
+  branch         Branch    @relation(fields: [branchId], references: [id])
+  patient        Patient   @relation(fields: [patientId], references: [id])
+  therapist      Therapist @relation(fields: [therapistId], references: [id])
+  bookingId      String?   @unique
+  booking        Booking?  @relation(fields: [bookingId], references: [id])
+}
+
+model Service {
+  id              String  @id @default(cuid())
+  branchId        String?
+  name            String
+  type            String
+  price           Float
+  durationMinutes Int
+  status          String  @default("ACTIVE")
+}
+
+model Invoice {
+  id            String    @id @default(cuid())
+  branchId      String
+  patientId     String
+  invoiceNumber String    @unique
+  subtotal      Float
+  discount      Float
+  total         Float
+  paymentMethod String?
+  status        String    @default("UNPAID") // PAID, UNPAID, OVERDUE, CANCELLED
+  issuedAt      DateTime  @default(now())
+  paidAt        DateTime?
+  
+  branch        Branch    @relation(fields: [branchId], references: [id])
+  patient       Patient   @relation(fields: [patientId], references: [id])
+  items         InvoiceItem[]
+  payments      Payment[]
+}
+
+model InvoiceItem {
+  id          String  @id @default(cuid())
+  invoiceId   String
+  serviceName String
+  qty         Int
+  price       Float
+  total       Float
+  
+  invoice     Invoice @relation(fields: [invoiceId], references: [id])
+}
+
+model TherapyPackage {
+  id                String    @id @default(cuid())
+  branchId          String
+  patientId         String
+  packageName       String
+  totalSessions     Int
+  usedSessions      Int       @default(0)
+  remainingSessions Int
+  price             Float
+  status            String    @default("ACTIVE")
+  expiredAt         DateTime?
+  createdAt         DateTime  @default(now())
+  
+  branch            Branch    @relation(fields: [branchId], references: [id])
+  patient           Patient   @relation(fields: [patientId], references: [id])
+}
+
+model Payment {
+  id        String    @id @default(cuid())
+  branchId  String
+  invoiceId String
+  patientId String
+  amount    Float
+  method    String
+  status    String    @default("COMPLETED")
+  paidAt    DateTime  @default(now())
+  
+  branch    Branch    @relation(fields: [branchId], references: [id])
+  invoice   Invoice   @relation(fields: [invoiceId], references: [id])
+  patient   Patient   @relation(fields: [patientId], references: [id])
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  userId      String?
+  branchId    String?
+  action      String
+  entity      String
+  entityId    String?
+  description String
+  createdAt   DateTime @default(now())
+  
+  user        User?    @relation(fields: [userId], references: [id])
+  branch      Branch?  @relation(fields: [branchId], references: [id])
+}
