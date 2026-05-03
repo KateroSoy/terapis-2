@@ -4,6 +4,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell
 } from 'recharts';
+import { cn } from 'src/lib/utils';
 
 const data = [
   { name: 'JKT', revenue: 450 },
