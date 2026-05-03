@@ -6,6 +6,14 @@ import { Dashboard } from './pages/Dashboard';
 import { Patients } from './pages/Patients';
 import { Bookings } from './pages/Bookings';
 import { Invoices } from './pages/Invoices';
+import { Therapists } from './pages/Therapists';
+import { MedicalRecords } from './pages/MedicalRecords';
+import { Cashier } from './pages/Cashier';
+import { TherapyPackages } from './pages/TherapyPackages';
+import { Reports } from './pages/Reports';
+import { Branches } from './pages/Branches';
+import { Users } from './pages/Users';
+import { Settings } from './pages/Settings';
 import { Toaster } from 'sonner';
 
 export default function App() {
@@ -61,6 +69,14 @@ export default function App() {
       case 'patients': return <Patients />;
       case 'bookings': return <Bookings />;
       case 'invoices': return <Invoices />;
+      case 'therapists': return <Therapists />;
+      case 'medical-records': return <MedicalRecords />;
+      case 'cashier': return <Cashier />;
+      case 'therapy-packages': return <TherapyPackages />;
+      case 'reports': return <Reports />;
+      case 'branches': return <Branches />;
+      case 'users': return <Users />;
+      case 'settings': return <Settings />;
       default: return <Dashboard />;
     }
   };
