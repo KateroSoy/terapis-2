@@ -1,5 +1,4 @@
-import { useEffect, useState } from 'react';
-import { useApp, api } from '../lib/api';
+import { useApp } from '../lib/api';
 import { StatCard } from '../components/ui/StatCard';
 import { 
   Users, 
@@ -25,18 +24,20 @@ import { Card } from '../components/ui/card';
 import { cn } from 'src/lib/utils';
 
 export function Dashboard() {
-  const { selectedBranchId, branches } = useApp();
-  const [stats, setStats] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const { selectedBranchId, branches, patients, bookings, therapists, invoices } = useApp();
 
-  useEffect(() => {
-    setLoading(true);
-    api(`/api/reports/dashboard?branchId=${selectedBranchId === 'all' ? '' : selectedBranchId}`)
-      .then(data => {
-        setStats(data);
-        setLoading(false);
-      });
-  }, [selectedBranchId]);
+  const branchPatients = selectedBranchId === 'all' ? patients : patients.filter(p => p.branchId === selectedBranchId);
+  const branchBookings = selectedBranchId === 'all' ? bookings : bookings.filter(b => b.branchId === selectedBranchId);
+  const branchTherapists = selectedBranchId === 'all' ? therapists : therapists.filter(t => t.branchId === selectedBranchId);
+  const paidRevenue = (selectedBranchId === 'all' ? invoices : invoices.filter(i => i.branchId === selectedBranchId))
+    .filter(i => i.status === 'PAID').reduce((s, i) => s + i.total, 0);
+
+  const stats = {
+    patientCount: branchPatients.length,
+    bookingCount: branchBookings.length,
+    therapistCount: branchTherapists.length,
+    revenue: paidRevenue,
+  };
 
   const chartData = [
     { name: 'Jan', revenue: 45000000 },
@@ -51,14 +52,6 @@ export function Dashboard() {
     pasien: Math.floor(Math.random() * 100) + 50,
     revenue: Math.floor(Math.random() * 50) + 20
   }));
-
-  if (loading) {
-    return (
-      <div className="flex h-96 items-center justify-center">
-        <div className="h-10 w-10 border-b-2 border-primary rounded-full animate-spin" />
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-8 pb-12">

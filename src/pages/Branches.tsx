@@ -1,5 +1,5 @@
 import { Card } from '../components/ui/card';
-import { Building2, MapPin, Phone, Mail, Plus, MoreHorizontal } from 'lucide-react';
+import { Building2, MapPin, Phone, Plus, MoreHorizontal } from 'lucide-react';
 import { useApp } from '../lib/api';
 
 export function Branches() {
