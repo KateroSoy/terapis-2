@@ -1,11 +1,5 @@
-import { useState } from 'react';
-import { AppContext, AppUser } from './lib/api';
-import {
-  INITIAL_BRANCHES, INITIAL_PATIENTS, INITIAL_THERAPISTS,
-  INITIAL_BOOKINGS, INITIAL_INVOICES, INITIAL_USERS,
-  generateId,
-  type Patient, type Therapist, type Booking, type Invoice, type Branch, type User,
-} from './lib/store';
+import { useState, useEffect, useCallback } from 'react';
+import { AppContext, api, type AppUser, type Branch, type Patient, type Therapist, type Booking, type Invoice, type MedicalRecord, type TherapyPackage, type Service, type User, type Payment } from './lib/api';
 import { Login } from './pages/Login';
 import { AppShell } from './components/layout/AppShell';
 import { Dashboard } from './pages/Dashboard';
@@ -23,66 +17,205 @@ import { Settings } from './pages/Settings';
 import { Toaster } from 'sonner';
 
 export default function App() {
-  const [user, setUser] = useState<AppUser | null>(null);
-  const [branches]      = useState<Branch[]>(INITIAL_BRANCHES);
-  const [patients, setPatients]       = useState<Patient[]>(INITIAL_PATIENTS);
-  const [therapists, setTherapists]   = useState<Therapist[]>(INITIAL_THERAPISTS);
-  const [bookings, setBookings]       = useState<Booking[]>(INITIAL_BOOKINGS);
-  const [invoices, setInvoices]       = useState<Invoice[]>(INITIAL_INVOICES);
-  const [users, setUsers]             = useState<User[]>(INITIAL_USERS);
+  const [user, setUser] = useState<AppUser | null>(() => {
+    const saved = localStorage.getItem('klinik_user');
+    return saved ? JSON.parse(saved) : null;
+  });
+  const [isLoading, setIsLoading] = useState(false);
+  const [branches, setBranches] = useState<Branch[]>([]);
+  const [patients, setPatients] = useState<Patient[]>([]);
+  const [therapists, setTherapists] = useState<Therapist[]>([]);
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [medicalRecords, setMedicalRecords] = useState<MedicalRecord[]>([]);
+  const [therapyPackages, setTherapyPackages] = useState<TherapyPackage[]>([]);
+  const [services, setServices] = useState<Service[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [payments, setPayments] = useState<Payment[]>([]);
   const [selectedBranchId, setSelectedBranchId] = useState('all');
   const [currentPage, setCurrentPage] = useState('dashboard');
 
+  // ---- Data Loading ----
+  const refreshData = useCallback(async () => {
+    if (!user) return;
+    setIsLoading(true);
+    try {
+      const branchFilter = selectedBranchId === 'all' ? undefined : selectedBranchId;
+      const [branchesData, patientsData, therapistsData, bookingsData, invoicesData, recordsData, packagesData, servicesData, usersData, paymentsData] = await Promise.all([
+        api.getBranches(),
+        api.getPatients(branchFilter),
+        api.getTherapists(branchFilter),
+        api.getBookings(branchFilter),
+        api.getInvoices(branchFilter),
+        api.getMedicalRecords(branchFilter),
+        api.getTherapyPackages(branchFilter),
+        api.getServices(),
+        api.getUsers(),
+        api.getPayments(branchFilter),
+      ]);
+      setBranches(branchesData);
+      setPatients(patientsData);
+      setTherapists(therapistsData);
+      setBookings(bookingsData);
+      setInvoices(invoicesData);
+      setMedicalRecords(recordsData);
+      setTherapyPackages(packagesData);
+      setServices(servicesData);
+      setUsers(usersData);
+      setPayments(paymentsData);
+    } catch (e) {
+      console.error('Failed to load data:', e);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user, selectedBranchId]);
+
+  useEffect(() => {
+    if (user) refreshData();
+  }, [user, selectedBranchId, refreshData]);
+
+  // ---- Auth ----
   const login = async (email: string, pass: string) => {
-    setUser({ id: 'u0', name: 'Demo Owner', email, role: 'OWNER', branchId: null });
-    return true;
+    try {
+      const res = await api.login(email, pass);
+      if (res.success && res.user) {
+        setUser(res.user);
+        localStorage.setItem('klinik_user', JSON.stringify(res.user));
+        if (res.user.role !== 'OWNER' && res.user.branchId) {
+          setSelectedBranchId(res.user.branchId);
+        }
+        return true;
+      }
+      return false;
+    } catch {
+      return false;
+    }
   };
-  const logout = () => { setUser(null); setSelectedBranchId('all'); setCurrentPage('dashboard'); };
+
+  const logout = () => {
+    setUser(null);
+    localStorage.removeItem('klinik_user');
+    setSelectedBranchId('all');
+    setCurrentPage('dashboard');
+  };
 
   // ---- Patient CRUD ----
-  const addPatient    = (p: Omit<Patient,'id'|'createdAt'>) =>
-    setPatients(prev => [...prev, { ...p, id: generateId(), createdAt: new Date().toISOString(), branch: branches.find(b=>b.id===p.branchId) as any }]);
-  const updatePatient = (id: string, p: Partial<Patient>) =>
-    setPatients(prev => prev.map(x => x.id === id ? { ...x, ...p } : x));
-  const deletePatient = (id: string) =>
-    setPatients(prev => prev.filter(x => x.id !== id));
+  const addPatient = async (p: Partial<Patient>) => {
+    await api.createPatient(p);
+    await refreshData();
+  };
+  const updatePatient = async (id: string, p: Partial<Patient>) => {
+    await api.updatePatient(id, p);
+    await refreshData();
+  };
+  const deletePatient = async (id: string) => {
+    await api.deletePatient(id);
+    await refreshData();
+  };
 
   // ---- Therapist CRUD ----
-  const addTherapist    = (t: Omit<Therapist,'id'>) =>
-    setTherapists(prev => [...prev, { ...t, id: generateId() }]);
-  const updateTherapist = (id: string, t: Partial<Therapist>) =>
-    setTherapists(prev => prev.map(x => x.id === id ? { ...x, ...t } : x));
-  const deleteTherapist = (id: string) =>
-    setTherapists(prev => prev.filter(x => x.id !== id));
+  const addTherapist = async (t: Partial<Therapist>) => {
+    await api.createTherapist(t);
+    await refreshData();
+  };
+  const updateTherapist = async (id: string, t: Partial<Therapist>) => {
+    await api.updateTherapist(id, t);
+    await refreshData();
+  };
+  const deleteTherapist = async (id: string) => {
+    await api.deleteTherapist(id);
+    await refreshData();
+  };
 
   // ---- Booking CRUD ----
-  const addBooking    = (b: Omit<Booking,'id'>) =>
-    setBookings(prev => [...prev, { ...b, id: generateId(),
-      patient: patients.find(p=>p.id===b.patientId) as any,
-      therapist: therapists.find(t=>t.id===b.therapistId) as any }]);
-  const updateBooking = (id: string, b: Partial<Booking>) =>
-    setBookings(prev => prev.map(x => x.id === id ? { ...x, ...b } : x));
-  const deleteBooking = (id: string) =>
-    setBookings(prev => prev.filter(x => x.id !== id));
+  const addBooking = async (b: Partial<Booking>) => {
+    await api.createBooking(b);
+    await refreshData();
+  };
+  const updateBooking = async (id: string, b: Partial<Booking>) => {
+    await api.updateBooking(id, b);
+    await refreshData();
+  };
+  const deleteBooking = async (id: string) => {
+    await api.deleteBooking(id);
+    await refreshData();
+  };
 
   // ---- Invoice CRUD ----
-  const nextInvNo = () => `INV/2024/${String(invoices.length + 1).padStart(3,'0')}`;
-  const addInvoice    = (i: Omit<Invoice,'id'>) =>
-    setInvoices(prev => [...prev, { ...i, id: generateId(),
-      invoiceNumber: nextInvNo(),
-      patient: patients.find(p=>p.id===i.patientId) as any }]);
-  const updateInvoice = (id: string, i: Partial<Invoice>) =>
-    setInvoices(prev => prev.map(x => x.id === id ? { ...x, ...i } : x));
-  const deleteInvoice = (id: string) =>
-    setInvoices(prev => prev.filter(x => x.id !== id));
+  const addInvoice = async (i: any) => {
+    await api.createInvoice(i);
+    await refreshData();
+  };
+  const updateInvoice = async (id: string, i: Partial<Invoice>) => {
+    await api.updateInvoice(id, i);
+    await refreshData();
+  };
+  const deleteInvoice = async (id: string) => {
+    await api.deleteInvoice(id);
+    await refreshData();
+  };
+
+  // ---- Medical Record CRUD ----
+  const addMedicalRecord = async (r: Partial<MedicalRecord>) => {
+    await api.createMedicalRecord(r);
+    await refreshData();
+  };
+  const updateMedicalRecord = async (id: string, r: Partial<MedicalRecord>) => {
+    await api.updateMedicalRecord(id, r);
+    await refreshData();
+  };
+  const deleteMedicalRecord = async (id: string) => {
+    await api.deleteMedicalRecord(id);
+    await refreshData();
+  };
+
+  // ---- Therapy Package CRUD ----
+  const addTherapyPackage = async (p: Partial<TherapyPackage>) => {
+    await api.createTherapyPackage(p);
+    await refreshData();
+  };
+  const updateTherapyPackage = async (id: string, p: Partial<TherapyPackage>) => {
+    await api.updateTherapyPackage(id, p);
+    await refreshData();
+  };
+  const deleteTherapyPackage = async (id: string) => {
+    await api.deleteTherapyPackage(id);
+    await refreshData();
+  };
 
   // ---- User CRUD ----
-  const addUser    = (u: Omit<User,'id'>) =>
-    setUsers(prev => [...prev, { ...u, id: generateId() }]);
-  const updateUser = (id: string, u: Partial<User>) =>
-    setUsers(prev => prev.map(x => x.id === id ? { ...x, ...u } : x));
-  const deleteUser = (id: string) =>
-    setUsers(prev => prev.filter(x => x.id !== id));
+  const addUser = async (u: Partial<User> & { password?: string }) => {
+    await api.createUser(u);
+    await refreshData();
+  };
+  const updateUser = async (id: string, u: Partial<User> & { password?: string }) => {
+    await api.updateUser(id, u);
+    await refreshData();
+  };
+  const deleteUser = async (id: string) => {
+    await api.deleteUser(id);
+    await refreshData();
+  };
+
+  // ---- Payment ----
+  const addPayment = async (p: Partial<Payment>) => {
+    await api.createPayment(p);
+    await refreshData();
+  };
+
+  // ---- Branch CRUD ----
+  const addBranch = async (b: Partial<Branch>) => {
+    await api.createBranch(b);
+    await refreshData();
+  };
+  const updateBranch = async (id: string, b: Partial<Branch>) => {
+    await api.updateBranch(id, b);
+    await refreshData();
+  };
+  const deleteBranch = async (id: string) => {
+    await api.deleteBranch(id);
+    await refreshData();
+  };
 
   if (!user) {
     return (
@@ -113,14 +246,19 @@ export default function App() {
 
   return (
     <AppContext.Provider value={{
-      user, branches, patients, therapists, bookings, invoices, users,
+      user, branches, patients, therapists, bookings, invoices,
+      medicalRecords, therapyPackages, services, users, payments,
       selectedBranchId, setSelectedBranchId,
-      login, logout, isLoading: false,
+      login, logout, isLoading, refreshData,
       addPatient, updatePatient, deletePatient,
       addTherapist, updateTherapist, deleteTherapist,
       addBooking, updateBooking, deleteBooking,
       addInvoice, updateInvoice, deleteInvoice,
+      addMedicalRecord, updateMedicalRecord, deleteMedicalRecord,
+      addTherapyPackage, updateTherapyPackage, deleteTherapyPackage,
       addUser, updateUser, deleteUser,
+      addPayment,
+      addBranch, updateBranch, deleteBranch,
     }}>
       <AppShell currentPage={currentPage} setCurrentPage={setCurrentPage}>
         {renderPage()}
