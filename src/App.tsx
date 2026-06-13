@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
 import { AppContext, api, type AppUser, type Branch, type Patient, type Therapist, type Booking, type Invoice, type MedicalRecord, type TherapyPackage, type Service, type User, type Payment } from './lib/api';
-import { Login } from './pages/Login';
 import { AppShell } from './components/layout/AppShell';
 import { Dashboard } from './pages/Dashboard';
 import { Patients } from './pages/Patients';
@@ -16,11 +15,16 @@ import { Users } from './pages/Users';
 import { Settings } from './pages/Settings';
 import { Toaster } from 'sonner';
 
+const demoUser: AppUser = {
+  id: 'demo',
+  name: 'Demo User',
+  email: 'demo@klinikterapispro.com',
+  role: 'OWNER',
+  branchId: null,
+};
+
 export default function App() {
-  const [user, setUser] = useState<AppUser | null>(() => {
-    const saved = localStorage.getItem('klinik_user');
-    return saved ? JSON.parse(saved) : null;
-  });
+  const [user, setUser] = useState<AppUser | null>(demoUser);
   const [isLoading, setIsLoading] = useState(false);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [patients, setPatients] = useState<Patient[]>([]);
@@ -37,7 +41,6 @@ export default function App() {
 
   // ---- Data Loading ----
   const refreshData = useCallback(async () => {
-    if (!user) return;
     setIsLoading(true);
     try {
       const branchFilter = selectedBranchId === 'all' ? undefined : selectedBranchId;
@@ -68,33 +71,14 @@ export default function App() {
     } finally {
       setIsLoading(false);
     }
-  }, [user, selectedBranchId]);
+  }, [selectedBranchId]);
 
   useEffect(() => {
-    if (user) refreshData();
-  }, [user, selectedBranchId, refreshData]);
-
-  // ---- Auth ----
-  const login = async (email: string, pass: string) => {
-    try {
-      const res = await api.login(email, pass);
-      if (res.success && res.user) {
-        setUser(res.user);
-        localStorage.setItem('klinik_user', JSON.stringify(res.user));
-        if (res.user.role !== 'OWNER' && res.user.branchId) {
-          setSelectedBranchId(res.user.branchId);
-        }
-        return true;
-      }
-      return false;
-    } catch {
-      return false;
-    }
-  };
+    refreshData();
+  }, [selectedBranchId, refreshData]);
 
   const logout = () => {
-    setUser(null);
-    localStorage.removeItem('klinik_user');
+    setUser(demoUser);
     setSelectedBranchId('all');
     setCurrentPage('dashboard');
   };
@@ -217,15 +201,6 @@ export default function App() {
     await refreshData();
   };
 
-  if (!user) {
-    return (
-      <>
-        <Login onLogin={login} />
-        <Toaster position="top-right" richColors />
-      </>
-    );
-  }
-
   const renderPage = () => {
     switch (currentPage) {
       case 'dashboard':        return <Dashboard />;
@@ -249,7 +224,7 @@ export default function App() {
       user, branches, patients, therapists, bookings, invoices,
       medicalRecords, therapyPackages, services, users, payments,
       selectedBranchId, setSelectedBranchId,
-      login, logout, isLoading, refreshData,
+      logout, isLoading, refreshData,
       addPatient, updatePatient, deletePatient,
       addTherapist, updateTherapist, deleteTherapist,
       addBooking, updateBooking, deleteBooking,
