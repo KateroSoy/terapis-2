@@ -285,6 +285,7 @@ export interface AppContextType {
   users: User[];
   payments: Payment[];
   isLoading: boolean;
+  login: (email: string, pass: string) => Promise<boolean>;
   logout: () => void;
   refreshData: () => Promise<void>;
   // CRUD

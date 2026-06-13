@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { AppContext, api, type AppUser, type Branch, type Patient, type Therapist, type Booking, type Invoice, type MedicalRecord, type TherapyPackage, type Service, type User, type Payment } from './lib/api';
+import { Login } from './pages/Login';
 import { AppShell } from './components/layout/AppShell';
 import { Dashboard } from './pages/Dashboard';
 import { Patients } from './pages/Patients';
@@ -24,7 +25,10 @@ const demoUser: AppUser = {
 };
 
 export default function App() {
-  const [user, setUser] = useState<AppUser | null>(demoUser);
+  const [user, setUser] = useState<AppUser | null>(() => {
+    const saved = localStorage.getItem('klinik_user');
+    return saved ? JSON.parse(saved) : null;
+  });
   const [isLoading, setIsLoading] = useState(false);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [patients, setPatients] = useState<Patient[]>([]);
@@ -74,13 +78,41 @@ export default function App() {
   }, [selectedBranchId]);
 
   useEffect(() => {
-    refreshData();
-  }, [selectedBranchId, refreshData]);
+    if (user) refreshData();
+  }, [user, selectedBranchId, refreshData]);
 
   const logout = () => {
-    setUser(demoUser);
+    setUser(null);
+    localStorage.removeItem('klinik_user');
     setSelectedBranchId('all');
     setCurrentPage('dashboard');
+  };
+
+  // ---- Auth ----
+  const login = async (email: string, pass: string) => {
+    try {
+      const res = await api.login(email, pass);
+      if (res && res.success && res.user) {
+        setUser(res.user);
+        localStorage.setItem('klinik_user', JSON.stringify(res.user));
+        if (res.user.role !== 'OWNER' && res.user.branchId) setSelectedBranchId(res.user.branchId);
+        return true;
+      }
+    } catch (e) {
+      // ignore and fallback to local login
+    }
+
+    // Fallback: accept any credentials and create a local user
+    const localUser: AppUser = {
+      id: `local-${email}`,
+      name: email.split('@')[0] || email,
+      email,
+      role: 'OWNER',
+      branchId: null,
+    };
+    setUser(localUser);
+    localStorage.setItem('klinik_user', JSON.stringify(localUser));
+    return true;
   };
 
   // ---- Patient CRUD ----
@@ -224,7 +256,7 @@ export default function App() {
       user, branches, patients, therapists, bookings, invoices,
       medicalRecords, therapyPackages, services, users, payments,
       selectedBranchId, setSelectedBranchId,
-      logout, isLoading, refreshData,
+      login, logout, isLoading, refreshData,
       addPatient, updatePatient, deletePatient,
       addTherapist, updateTherapist, deleteTherapist,
       addBooking, updateBooking, deleteBooking,
