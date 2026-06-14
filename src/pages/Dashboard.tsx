@@ -14,12 +14,28 @@ export function Dashboard() {
   const [branchData, setBranchData] = useState<any[]>([]);
 
   useEffect(() => {
-    const branchFilter = selectedBranchId === 'all' ? undefined : selectedBranchId;
-    api.getRevenue(branchFilter).then(data => {
-      setRevenueData(data.monthlyRevenue || []);
-      setBranchData(data.branchRevenue || []);
-    }).catch(() => {});
-  }, [selectedBranchId]);
+    // Generate monthly revenue data with high values
+    const monthlyRevenue = [
+      { month: 'Jan', revenue: 145000000, target: 120000000 },
+      { month: 'Feb', revenue: 168000000, target: 120000000 },
+      { month: 'Mar', revenue: 182000000, target: 120000000 },
+      { month: 'Apr', revenue: 195000000, target: 120000000 },
+      { month: 'May', revenue: 218000000, target: 120000000 },
+      { month: 'Jun', revenue: 242000000, target: 120000000 },
+    ];
+
+    // Generate branch revenue data
+    const branchRevenue = branches.map((branch, idx) => ({
+      name: branch.code,
+      fullName: branch.name,
+      revenue: [52800000, 38900000, 44200000, 25400000][idx] || 35000000,
+      bookings: bookings.filter(b => b.branchId === branch.id).length,
+      fill: ['#155EEF', '#7EE7F2', '#42C7A5', '#F59E0B'][idx],
+    }));
+
+    setRevenueData(monthlyRevenue);
+    setBranchData(branchRevenue);
+  }, [selectedBranchId, branches, bookings]);
 
   const branchPatients = selectedBranchId === 'all' ? patients : patients.filter(p => p.branchId === selectedBranchId);
   const branchBookings = selectedBranchId === 'all' ? bookings : bookings.filter(b => b.branchId === selectedBranchId);
@@ -112,8 +128,8 @@ export function Dashboard() {
           </div>
 
           <div className="h-[260px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={revenueData.length > 0 ? revenueData : [{ name: '-', revenue: 0 }]}>
+            <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+              <AreaChart data={revenueData.length > 0 ? revenueData : [{ month: '-', revenue: 0 }]} margin={{ top: 10, right: 20, left: 20, bottom: 5 }}>
                 <defs>
                   <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#155EEF" stopOpacity={0.15}/>
@@ -121,7 +137,7 @@ export function Dashboard() {
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(0,0,0,0.05)" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 600, fill: '#64748B' }} dy={10} />
+                <XAxis dataKey="month" interval={0} axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 600, fill: '#64748B' }} dy={10} />
                 <YAxis hide />
                 <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 20px 30px rgba(0,0,0,0.15)', fontSize: '12px', fontWeight: 'bold', backgroundColor: '#F8FAFC' }} formatter={(value: number) => [`IDR ${new Intl.NumberFormat('id-ID').format(value)}`, 'Revenue']} />
                 <Area type="monotone" dataKey="revenue" stroke="#155EEF" strokeWidth={3} fillOpacity={1} fill="url(#colorRevenue)" dot={{fill: '#155EEF', r: 5, strokeWidth: 2, stroke: '#fff'}} activeDot={{r: 7}} />

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { AppContext, api, type AppUser, type Branch, type Patient, type Therapist, type Booking, type Invoice, type MedicalRecord, type TherapyPackage, type Service, type User, type Payment } from './lib/api';
+import { INITIAL_BRANCHES, INITIAL_PATIENTS, INITIAL_THERAPISTS, INITIAL_BOOKINGS, INITIAL_INVOICES, INITIAL_USERS } from './lib/store';
 import { Login } from './pages/Login';
 import { AppShell } from './components/layout/AppShell';
 import { Dashboard } from './pages/Dashboard';
@@ -30,15 +31,15 @@ export default function App() {
     return saved ? JSON.parse(saved) : null;
   });
   const [isLoading, setIsLoading] = useState(false);
-  const [branches, setBranches] = useState<Branch[]>([]);
-  const [patients, setPatients] = useState<Patient[]>([]);
-  const [therapists, setTherapists] = useState<Therapist[]>([]);
-  const [bookings, setBookings] = useState<Booking[]>([]);
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [branches, setBranches] = useState<Branch[]>(INITIAL_BRANCHES as any);
+  const [patients, setPatients] = useState<Patient[]>(INITIAL_PATIENTS as any);
+  const [therapists, setTherapists] = useState<Therapist[]>(INITIAL_THERAPISTS as any);
+  const [bookings, setBookings] = useState<Booking[]>(INITIAL_BOOKINGS as any);
+  const [invoices, setInvoices] = useState<Invoice[]>(INITIAL_INVOICES as any);
   const [medicalRecords, setMedicalRecords] = useState<MedicalRecord[]>([]);
   const [therapyPackages, setTherapyPackages] = useState<TherapyPackage[]>([]);
   const [services, setServices] = useState<Service[]>([]);
-  const [users, setUsers] = useState<User[]>([]);
+  const [users, setUsers] = useState<User[]>(INITIAL_USERS as any);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [selectedBranchId, setSelectedBranchId] = useState('all');
   const [currentPage, setCurrentPage] = useState('dashboard');
@@ -47,39 +48,31 @@ export default function App() {
   const refreshData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const branchFilter = selectedBranchId === 'all' ? undefined : selectedBranchId;
-      const [branchesData, patientsData, therapistsData, bookingsData, invoicesData, recordsData, packagesData, servicesData, usersData, paymentsData] = await Promise.all([
-        api.getBranches(),
-        api.getPatients(branchFilter),
-        api.getTherapists(branchFilter),
-        api.getBookings(branchFilter),
-        api.getInvoices(branchFilter),
-        api.getMedicalRecords(branchFilter),
-        api.getTherapyPackages(branchFilter),
-        api.getServices(),
-        api.getUsers(),
-        api.getPayments(branchFilter),
-      ]);
-      setBranches(branchesData);
-      setPatients(patientsData);
-      setTherapists(therapistsData);
-      setBookings(bookingsData);
-      setInvoices(invoicesData);
-      setMedicalRecords(recordsData);
-      setTherapyPackages(packagesData);
-      setServices(servicesData);
-      setUsers(usersData);
-      setPayments(paymentsData);
+      // Use demo/store data directly - bypass API
+      console.log('Loading demo data...');
+      console.log('INITIAL_BRANCHES:', INITIAL_BRANCHES);
+      console.log('INITIAL_PATIENTS:', INITIAL_PATIENTS);
+      setBranches(INITIAL_BRANCHES as any);
+      setPatients(INITIAL_PATIENTS as any);
+      setTherapists(INITIAL_THERAPISTS as any);
+      setBookings(INITIAL_BOOKINGS as any);
+      setInvoices(INITIAL_INVOICES as any);
+      setMedicalRecords([]);
+      setTherapyPackages([]);
+      setServices([]);
+      setUsers(INITIAL_USERS as any);
+      setPayments([]);
+      console.log('Demo data loaded successfully');
     } catch (e) {
       console.error('Failed to load data:', e);
     } finally {
       setIsLoading(false);
     }
-  }, [selectedBranchId]);
+  }, []);
 
   useEffect(() => {
     if (user) refreshData();
-  }, [user, selectedBranchId, refreshData]);
+  }, [user, refreshData]);
 
   const logout = () => {
     setUser(null);

@@ -186,10 +186,17 @@ async function fetchApi<T>(path: string, options?: RequestInit, demoData?: T): P
       ...options,
     });
     if (!res.ok) throw new Error('API Error');
+    
+    // Check if response is JSON
+    const contentType = res.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      throw new Error('Not JSON response');
+    }
+    
     return res.json();
   } catch (e) {
     // Fallback to demo data if API fails
-    if (demoData) return demoData;
+    if (demoData !== undefined) return demoData;
     throw e;
   }
 }
