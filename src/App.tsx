@@ -2,6 +2,9 @@ import { useState, useEffect, useCallback } from 'react';
 import { AppContext, api, type AppUser, type Branch, type Patient, type Therapist, type Booking, type Invoice, type MedicalRecord, type TherapyPackage, type Service, type User, type Payment } from './lib/api';
 import { INITIAL_BRANCHES, INITIAL_PATIENTS, INITIAL_THERAPISTS, INITIAL_BOOKINGS, INITIAL_INVOICES, INITIAL_USERS } from './lib/store';
 import { Login } from './pages/Login';
+import { Portal } from './pages/Portal';
+import { CustomerLanding } from './pages/CustomerLanding';
+import { OnlineRegistration } from './pages/OnlineRegistration';
 import { AppShell } from './components/layout/AppShell';
 import { Dashboard } from './pages/Dashboard';
 import { Patients } from './pages/Patients';
@@ -43,6 +46,7 @@ export default function App() {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [selectedBranchId, setSelectedBranchId] = useState('all');
   const [currentPage, setCurrentPage] = useState('dashboard');
+  const [portalMode, setPortalMode] = useState<'portal' | 'customer' | 'customer_booking' | 'business'>('portal');
 
   // ---- Data Loading ----
   const refreshData = useCallback(async () => {
@@ -79,6 +83,7 @@ export default function App() {
     localStorage.removeItem('klinik_user');
     setSelectedBranchId('all');
     setCurrentPage('dashboard');
+    setPortalMode('portal');
   };
 
   // ---- Auth ----
@@ -260,9 +265,21 @@ export default function App() {
       addPayment,
       addBranch, updateBranch, deleteBranch,
     }}>
-      <AppShell currentPage={currentPage} setCurrentPage={setCurrentPage}>
-        {renderPage()}
-      </AppShell>
+      {!user ? (
+        portalMode === 'portal' ? (
+          <Portal onSelectMode={setPortalMode} />
+        ) : portalMode === 'customer' ? (
+          <CustomerLanding onBooking={() => setPortalMode('customer_booking')} onBack={() => setPortalMode('portal')} />
+        ) : portalMode === 'customer_booking' ? (
+          <OnlineRegistration onBack={() => setPortalMode('customer')} />
+        ) : (
+          <Login onLogin={login} onBack={() => setPortalMode('portal')} />
+        )
+      ) : (
+        <AppShell currentPage={currentPage} setCurrentPage={setCurrentPage}>
+          {renderPage()}
+        </AppShell>
+      )}
       <Toaster position="top-right" richColors />
     </AppContext.Provider>
   );

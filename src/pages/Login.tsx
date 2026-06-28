@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import { motion } from 'motion/react';
-import { Stethoscope, Lock, Mail, ArrowRight } from 'lucide-react';
+import { Stethoscope, Lock, Mail, ArrowRight, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface LoginProps {
   onLogin: (email: string, pass: string) => Promise<boolean>;
+  onBack?: () => void;
 }
 
-export function Login({ onLogin }: LoginProps) {
+export function Login({ onLogin, onBack }: LoginProps) {
   const [email, setEmail] = useState('owner@klinikterapispro.com');
   const [password, setPassword] = useState('demo123');
   const [loading, setLoading] = useState(false);
@@ -36,6 +37,14 @@ export function Login({ onLogin }: LoginProps) {
         animate={{ opacity: 1, y: 0 }}
         className="w-full max-w-md px-6 z-10"
       >
+        {onBack && (
+          <button 
+            onClick={onBack}
+            className="mb-6 flex items-center text-sm font-bold text-muted-foreground hover:text-primary transition-colors"
+          >
+            <ArrowLeft size={16} className="mr-2" /> Kembali ke Portal
+          </button>
+        )}
         <div className="glass-panel p-10 rounded-[32px]">
           <div className="flex flex-col items-center mb-10 text-center">
             <div className="flex h-16 w-16 items-center justify-center rounded-[20px] bg-primary shadow-2xl shadow-primary/30 mb-6 group transition-transform hover:scale-110">
